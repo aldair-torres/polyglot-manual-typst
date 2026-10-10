@@ -1,0 +1,17 @@
+[package]
+name = "polyglot-manual"
+version = "0.1.0"
+entrypoint = "lib.typ"
+authors = ["Aldair Torres <https://aldair.com.mx>"]
+license = "MIT"
+description = "Multilingual product manuals for print and screen."
+repository = "https://github.com/aldair-torres/polyglot-manual-typst"
+keywords = ["manual", "documentation", "multilingual", "cjk", "print"]
+categories = ["book", "languages"]
+compiler = "0.13.0"
+exclude = [".github"]
+
+[template]
+path = "template"
+entrypoint = "en/main.typ"
+thumbnail = "thumbnail.png"

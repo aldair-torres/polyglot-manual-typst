@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        typst-version: ["0.13.0", "0.15.1"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: typst-community/setup-typst@v5
+        with:
+          typst-version: ${{ matrix.typst-version }}
+
+      - name: Install the package locally
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' typst.toml | head -n1)
+          mkdir -p "$HOME/.local/share/typst/packages/preview/polyglot-manual"
+          ln -s "$PWD" "$HOME/.local/share/typst/packages/preview/polyglot-manual/$version"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Initialize the template and compile every language folder
+        run: |
+          typst init "@preview/polyglot-manual:$VERSION" project
+          for dir in project/*/; do
+            [ -f "$dir/main.typ" ] || continue
+            lang=$(basename "$dir")
+            typst compile --root project "$dir/main.typ" "project/$lang-digital.pdf"
+            typst compile --root project --input media=printed "$dir/main.typ" "project/$lang-print-a5-bw.pdf"
+            typst compile --root project --input media=printed --input paper=a4 "$dir/main.typ" "project/$lang-print-a4-bw.pdf"
+            typst compile --root project --input media=printed --input paper=a4 --input color=color "$dir/main.typ" "project/$lang-print-a4-color.pdf"
+          done
+
+      - name: Smoke-test a copied translation folder
+        run: |
+          cp -r project/en project/es
+          sed -i 's/document-language-code: "en"/document-language-code: "es"/' project/es/main.typ
+          typst compile --root project project/es/main.typ project/es-digital.pdf
+          bash project/check-translations.sh
+
+      - name: Run the test suite
+        run: bash tests/run-tests.sh
